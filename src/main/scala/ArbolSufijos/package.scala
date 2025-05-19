@@ -10,18 +10,22 @@ package object ArbolSufijos {
    * Para un Nodo, es el carácter del nodo.
    * Para una Hoja, es el carácter de la hoja.
    */
-  def raiz(t: Trie): Char = t match {
-    case Nodo(c, _, _) => c
-    case Hoja(c, _) => c
+  def raiz(t: Trie): Char = {
+    t match {
+      case Nodo(c, _, _) => c
+      case Hoja(c, _) => c
+    }
   }
 
   /**
    * Devuelve una secuencia de caracteres representando las cabezas de los hijos directos de un Nodo.
    * Para una Hoja, devuelve una secuencia con su propio carácter.
    */
-  def cabezas(t: Trie): Seq[Char] = t match {
-    case Nodo(_, _, hijos) => hijos.map(hijo => raiz(hijo)) // Asumiendo que quieres los caracteres raíz de los hijos
-    case Hoja(c, _) => Seq(c)
+  def cabezas(t: Trie): Seq[Char] = {
+    t match {
+      case Nodo(_, _, lt) => lt.map(t => raiz(t))
+      case Hoja(c, _) => Seq[Char](c)
+    }
   }
 
   /**
