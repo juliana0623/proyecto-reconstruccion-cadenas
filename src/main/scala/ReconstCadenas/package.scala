@@ -15,6 +15,7 @@ package object ReconstCadenas {
     ??? // Implementar lógica aquí
   }
 
+
   /**
    * Recibe la longitud de la secuencia que hay que reconstruir (n) y un oráculo para esa secuencia,
    * y devuelve la secuencia reconstruida.
@@ -39,22 +40,18 @@ package object ReconstCadenas {
     } yield s1 ++ s2
 
     @tailrec
-    def iterar(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
-      if (k > n) Seq()
+    def reconstruir(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
+      val candidatas = generarCandidatos(SC).filter(o)
+      val S = candidatas.head
+
+      if (S.length == n) S
       else {
-        val candidatos = generarCandidatos(SC)
-        val SCfiltrado = candidatos.filter(w => o(w))
-        val SClongitudN = SCfiltrado.find(w => w.length == n)
-        if (SClongitudN.nonEmpty) {
-          SClongitudN.head
-        } else {
-          iterar(2 * k, SCfiltrado)
-        }
+        reconstruir(2 * k, candidatas)
       }
     }
 
     val SC1: Seq[Seq[Char]] = alfabeto.map(c => Seq(c))
-    iterar(2, SC1)
+    reconstruir(2, SC1)
   }
 
   /**
@@ -66,31 +63,27 @@ package object ReconstCadenas {
    */
   def reconstruirCadenaTurboMejorada(n: Int, o: Oraculo): Seq[Char] = {
     def filtrar(SC: Seq[Seq[Char]], k: Int): Seq[Seq[Char]] = {
-      val candidatos = for {
+      val conjunto = SC.toSet
+      for {
         s1 <- SC
         s2 <- SC
         s = s1 ++ s2
-        if (1 until k).forall(i => SC.contains(s.slice(i, i + k)))
+        if s.sliding(k).forall(conjunto.contains)
       } yield s
-      candidatos
     }
 
     @tailrec
-    def iterar(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
-      if (k > n) Seq()
+    def reconstruir(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
+      val candidatas = filtrar(SC, k / 2).filter(o)
+      val S = candidatas.head
+      if (S.length == n) S
       else {
-        val candidatos = filtrar(SC, k/2)
-        val SCfiltrado = candidatos.filter(w => o(w))
-        val SClongitudN = SCfiltrado.find(w => w.length == n)
-        if(SClongitudN.nonEmpty){
-          SClongitudN.head
-        }else{
-          iterar(2 * k, SCfiltrado)
-        }
+        reconstruir(2 * k, candidatas)
       }
     }
+
     val SC1: Seq[Seq[Char]] = alfabeto.map(c => Seq(c))
-    iterar(2, SC1)
+    reconstruir(2, SC1)
   }
 
   /**
@@ -103,25 +96,28 @@ package object ReconstCadenas {
   def reconstruirCadenaTurboAcelerada(n: Int, o: Oraculo): Seq[Char] = {
     def filtrar(SC: Seq[Seq[Char]], k: Int): Seq[Seq[Char]] = {
       val trie = arbolDeSufijos(SC)
-      val combinaciones = for (s1 <- SC; s2 <- SC) yield s1 ++ s2
-      combinaciones.filter(s => s.sliding(k).forall(sub => pertenece(sub, trie)))
+      val combinaciones = for {
+        s1 <- SC
+        s2 <- SC
+      } yield s1 ++ s2
+
+      combinaciones.filter { s =>
+        s.sliding(k).forall(sub => pertenece(sub, trie))
+      }
     }
 
     @tailrec
-    def iterar(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
-      if (k > n) Seq()
+    def reconstruir(k: Int, SCi: Seq[Seq[Char]]): Seq[Char] = {
+      val candidatas = filtrar(SCi, k / 2).filter(o)
+      val S = candidatas.head
+
+      if (S.length == n) S
       else {
-        val candidatos = filtrar(SC, k/2)
-        val SCfiltrado = candidatos.filter(w => o(w))
-        val SClongitudN = SCfiltrado.find(w => w.length == n)
-        if(SClongitudN.nonEmpty){
-          SClongitudN.head
-        }else{
-          iterar(2 * k, SCfiltrado)
-        }
+        reconstruir(2 * k, candidatas)
       }
     }
+
     val SC1 = alfabeto.map(c => Seq(c)).filter(o)
-    iterar(2, SC1)
+    reconstruir(2, SC1)
   }
 }
