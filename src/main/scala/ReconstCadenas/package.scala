@@ -63,12 +63,11 @@ package object ReconstCadenas {
    */
   def reconstruirCadenaTurboMejorada(n: Int, o: Oraculo): Seq[Char] = {
     def filtrar(SC: Seq[Seq[Char]], k: Int): Seq[Seq[Char]] = {
-      val conjunto = SC.toSet
       for {
         s1 <- SC
         s2 <- SC
         s = s1 ++ s2
-        if s.sliding(k).forall(conjunto.contains)
+        if s.sliding(k).forall(SC.contains)
       } yield s
     }
 
@@ -82,7 +81,7 @@ package object ReconstCadenas {
       }
     }
 
-    val SC1: Seq[Seq[Char]] = alfabeto.map(c => Seq(c))
+    val SC1 = alfabeto.map(c => Seq(c)).filter(o)
     reconstruir(2, SC1)
   }
 
