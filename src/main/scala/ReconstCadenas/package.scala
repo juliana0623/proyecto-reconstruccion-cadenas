@@ -11,8 +11,35 @@ package object ReconstCadenas {
    * Algoritmo Ingenuo (2.3.1 del enunciado).
    */
   def reconstruirCadenaIngenuo(n: Int, o: Oraculo): Seq[Char] = {
-    // Implementación de la función reconstruirCadenaIngenuo
-    ??? // Implementar lógica aquí
+    val cadenas = (1 to n).foldLeft(Seq(Seq.empty[Char])) { (acc, _) =>
+      val (izq, der) = acc.splitAt(acc.size / 2)
+
+      val resIzq = for {
+        prefix <- izq
+        letra <- alfabeto
+      } yield prefix :+ letra
+
+      val resDer = for {
+        prefix <- der
+        letra <- alfabeto
+      } yield prefix :+ letra
+
+      resIzq ++ resDer
+    }
+
+    val (izq, der) = cadenas.splitAt(cadenas.size / 2)
+
+    val candidatasIzq = izq.filter(o)
+    val resultadoIzq =
+      if (candidatasIzq.isEmpty) Seq()
+      else candidatasIzq.head
+
+    if (resultadoIzq.nonEmpty) resultadoIzq
+    else {
+      val candidatasDer = der.filter(o)
+      if (candidatasDer.isEmpty) Seq()
+      else candidatasDer.head
+    }
   }
 
 
@@ -23,8 +50,41 @@ package object ReconstCadenas {
    * Usa la propiedad de que si s <= S, entonces s1 y s2 (donde s = s1.s2) también son subsecuencias de S.
    */
   def reconstruirCadenaMejorado(n: Int, o: Oraculo): Seq[Char] = {
-    // Implementación de la función reconstruirCadenaMejorado
-    ??? // Implementar lógica aquí
+    val sc0: Seq[Seq[Char]] = Seq(Seq.empty)
+
+    val scK = (1 to n).foldLeft(sc0) { (scAnterior, _) =>
+      val (izq, der) = scAnterior.splitAt(scAnterior.size / 2)
+
+      val resIzq = for {
+        w <- izq
+        letra <- alfabeto
+        nuevo = w :+ letra
+        if o(nuevo)
+      } yield nuevo
+
+      val resDer = for {
+        w <- der
+        letra <- alfabeto
+        nuevo = w :+ letra
+        if o(nuevo)
+      } yield nuevo
+
+      resIzq ++ resDer
+    }
+
+    val (izq, der) = scK.splitAt(scK.size / 2)
+
+    val candidatasIzq = izq.filter(seq => seq.length == n)
+    val resultadoIzq =
+      if (candidatasIzq.isEmpty) Seq()
+      else candidatasIzq.head
+
+    if (resultadoIzq.nonEmpty) resultadoIzq
+    else {
+      val candidatasDer = der.filter(seq => seq.length == n)
+      if (candidatasDer.isEmpty) Seq()
+      else candidatasDer.head
+    }
   }
 
   /**
