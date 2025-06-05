@@ -11,38 +11,17 @@ package object ReconstCadenas {
    * Algoritmo Ingenuo (2.3.1 del enunciado).
    */
   def reconstruirCadenaIngenuo(n: Int, o: Oraculo): Seq[Char] = {
-    val cadenas = (1 to n).foldLeft(Seq(Seq.empty[Char])) { (acc, _) =>
-      val (izq, der) = acc.splitAt(acc.size / 2)
-
-      val resIzq = for {
-        prefix <- izq
-        letra <- alfabeto
-      } yield prefix :+ letra
-
-      val resDer = for {
-        prefix <- der
-        letra <- alfabeto
-      } yield prefix :+ letra
-
-      resIzq ++ resDer
+    val alfabetoLazy = alfabeto.to(LazyList)
+    val candidatos = (1 to n).foldLeft(LazyList(Vector.empty[Char])) {
+      (acc, _) =>
+        for {
+          prefix <- acc
+          letra <- alfabeto
+        } yield prefix :+ letra
     }
 
-    val (izq, der) = cadenas.splitAt(cadenas.size / 2)
-
-    val candidatasIzq = izq.filter(o)
-    val resultadoIzq =
-      if (candidatasIzq.isEmpty) Seq()
-      else candidatasIzq.head
-
-    if (resultadoIzq.nonEmpty) resultadoIzq
-    else {
-      val candidatasDer = der.filter(o)
-      if (candidatasDer.isEmpty) Seq()
-      else candidatasDer.head
-    }
+    candidatos.find(o).getOrElse(Seq.empty)
   }
-
-
   /**
    * Recibe la longitud de la secuencia que hay que reconstruir (n) y un oráculo para esa secuencia,
    * y devuelve la secuencia reconstruida.
@@ -50,41 +29,18 @@ package object ReconstCadenas {
    * Usa la propiedad de que si s <= S, entonces s1 y s2 (donde s = s1.s2) también son subsecuencias de S.
    */
   def reconstruirCadenaMejorado(n: Int, o: Oraculo): Seq[Char] = {
-    val sc0: Seq[Seq[Char]] = Seq(Seq.empty)
-
-    val scK = (1 to n).foldLeft(sc0) { (scAnterior, _) =>
-      val (izq, der) = scAnterior.splitAt(scAnterior.size / 2)
-
-      val resIzq = for {
-        w <- izq
-        letra <- alfabeto
-        nuevo = w :+ letra
-        if o(nuevo)
-      } yield nuevo
-
-      val resDer = for {
-        w <- der
-        letra <- alfabeto
-        nuevo = w :+ letra
-        if o(nuevo)
-      } yield nuevo
-
-      resIzq ++ resDer
+    
+    val alfabetoLazy = alfabeto.to(LazyList)
+    val candidatos = (1 to n).foldLeft(LazyList(Vector.empty[Char])) {
+      (acc, _) =>
+        for {
+          prefix <- acc
+          letra <- alfabeto
+          filtrado = prefix :+ letra
+        } yield filtrado
     }
 
-    val (izq, der) = scK.splitAt(scK.size / 2)
-
-    val candidatasIzq = izq.filter(seq => seq.length == n)
-    val resultadoIzq =
-      if (candidatasIzq.isEmpty) Seq()
-      else candidatasIzq.head
-
-    if (resultadoIzq.nonEmpty) resultadoIzq
-    else {
-      val candidatasDer = der.filter(seq => seq.length == n)
-      if (candidatasDer.isEmpty) Seq()
-      else candidatasDer.head
-    }
+    candidatos.find(o).getOrElse(Seq.empty)
   }
 
   /**
@@ -94,10 +50,12 @@ package object ReconstCadenas {
    * Usa la propiedad de que si s <= S, entonces s1 y s2 también son subsecuencias de S.
    */
   def reconstruirCadenaTurbo(n: Int, o: Oraculo): Seq[Char] = {
-    def generarCandidatos(SC: Seq[Seq[Char]]): Seq[Seq[Char]] = for {
-      s1 <- SC
-      s2 <- SC
-    } yield s1 ++ s2
+    def generarCandidatos(SC: Seq[Seq[Char]]): Seq[Seq[Char]] = {
+      for {
+        s1 <- SC
+        s2 <- SC
+      } yield s1 ++ s2
+    }
 
     @tailrec
     def reconstruir(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
@@ -105,14 +63,13 @@ package object ReconstCadenas {
       val S = candidatas.head
 
       if (S.length == n) S
-      else {
-        reconstruir(2 * k, candidatas)
-      }
+      else reconstruir(2 * k, candidatas)
     }
 
     val SC1 = alfabeto.map(c => Seq(c)).filter(o)
     reconstruir(2, SC1)
   }
+
 
   /**
    * Recibe la longitud de la secuencia que hay que reconstruir (n, potencia de 2) y un oráculo para esa secuencia,
@@ -138,14 +95,13 @@ package object ReconstCadenas {
       val S = candidatas.head
 
       if (S.length == n) S
-      else {
-        reconstruir(2 * k, candidatas)
-      }
+      else reconstruir(2 * k, candidatas)
     }
 
     val SC1 = alfabeto.map(c => Seq(c)).filter(o)
     reconstruir(2, SC1)
   }
+
 
   /**
    * Recibe la longitud de la secuencia que hay que reconstruir (n, potencia de 2) y un oráculo para esa secuencia,
@@ -173,12 +129,10 @@ package object ReconstCadenas {
       val S = candidatas.head
 
       if (S.length == n) S
-      else {
-        reconstruir(2 * k, candidatas)
-      }
+      else reconstruir(2 * k, candidatas)
     }
-
     val SC1 = alfabeto.map(c => Seq(c)).filter(o)
     reconstruir(2, SC1)
   }
+
 }
