@@ -16,10 +16,9 @@ package object ReconstCadenas {
       (acc, _) =>
         for {
           prefix <- acc
-          letra <- alfabeto
+          letra <- alfabetoLazy
         } yield prefix :+ letra
     }
-
     candidatos.find(o).getOrElse(Seq.empty)
   }
   /**
@@ -29,18 +28,19 @@ package object ReconstCadenas {
    * Usa la propiedad de que si s <= S, entonces s1 y s2 (donde s = s1.s2) también son subsecuencias de S.
    */
   def reconstruirCadenaMejorado(n: Int, o: Oraculo): Seq[Char] = {
-    
     val alfabetoLazy = alfabeto.to(LazyList)
-    val candidatos = (1 to n).foldLeft(LazyList(Vector.empty[Char])) {
-      (acc, _) =>
-        for {
-          prefix <- acc
-          letra <- alfabeto
-          filtrado = prefix :+ letra
-        } yield filtrado
+    val sc0 = LazyList(Vector.empty[Char])
+
+    val scK = (1 to n).foldLeft(sc0) { (scAnterior, _) =>
+      for {
+        w <- scAnterior
+        letra <- alfabetoLazy
+        nuevo = w :+ letra
+        if o(nuevo)
+      } yield nuevo
     }
 
-    candidatos.find(o).getOrElse(Seq.empty)
+    scK.find(_.length == n).getOrElse(Seq.empty)
   }
 
   /**
@@ -85,7 +85,7 @@ package object ReconstCadenas {
         s1 <- SC
         s2 <- SC
         s = s1 ++ s2
-        if s.sliding(k).forall(conjunto.contains)
+        if s.sliding(k).toSet(conjunto.contains)
       } yield s
     }
 

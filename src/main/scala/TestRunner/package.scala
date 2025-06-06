@@ -16,8 +16,8 @@ object TestRunner extends App {
 
     // Tiempo secuencial
     val tiempoSecuencial = config(
-      KeyValue(Key.exec.minWarmupRuns -> 1),//20
-      KeyValue(Key.exec.maxWarmupRuns -> 5),//60
+      KeyValue(Key.exec.minWarmupRuns -> 20),//20
+      KeyValue(Key.exec.maxWarmupRuns -> 60),//60
       KeyValue(Key.verbose -> false)
     ) withWarmer(new Warmer.Default) measure {
       reconstruirCadenaTurboMejorada(s.length, or)
@@ -25,8 +25,8 @@ object TestRunner extends App {
 
     // Tiempo paralelo (única versión paralela incluida)
     val tiempoPar = config(
-      KeyValue(Key.exec.minWarmupRuns -> 1),
-      KeyValue(Key.exec.maxWarmupRuns -> 5),
+      KeyValue(Key.exec.minWarmupRuns -> 20),
+      KeyValue(Key.exec.maxWarmupRuns -> 60),
       KeyValue(Key.verbose -> false)
     ) withWarmer(new Warmer.Default) measure {
       reconstruirCadenaTurboMejoradaPar(1)(s.length, or)
@@ -69,9 +69,9 @@ object TestRunner extends App {
   val timestamp = dateFormat.format(new Date())
   val nombreArchivo = s"resultados_acelerada_$timestamp.csv"
 
-  println("Ejecutando pruebas para k de 1 a 12...")
+  println("Ejecutando pruebas para k de 1 a 8...")
 
-  val resultados = (1 to 12).map { k =>
+  val resultados = (1 to 8).map { k =>
     println(s"Procesando k = $k (tamaño = ${math.pow(2, k).toInt})...")
     val resultado = comparar(k)
     (k, resultado)

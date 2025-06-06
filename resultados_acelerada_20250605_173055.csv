@@ -1,0 +1,89 @@
+k,Tamaño,Tiempo_Secuencial,Tiempo_Paralelo,Aceleracion
+1,  2,       15.91,             10.19,        1.56
+2,  4,       24.41,             16.15,        1.51
+3,  8,       64.67,             21.99,        2.94
+4,  16,      100.07,            28.74,        3.48
+5,  32,      474.06,            103.58,       4.58
+6,  64,      1113.67,           206.03,       5.41
+7,  128,     4417.75,           733.08,       6.03
+8,  256,     16705.09,          2438.22,      6.85
+
+val tiempoSecuencial = config(
+      KeyValue(Key.exec.minWarmupRuns -> 20),//20
+      KeyValue(Key.exec.maxWarmupRuns -> 60),//60
+      KeyValue(Key.verbose -> false)
+    ) withWarmer(new Warmer.Default) measure {
+      reconstruirCadenaTurboMejorada(s.length, or)
+    }
+
+    // Tiempo paralelo (única versión paralela incluida)
+    val tiempoPar = config(
+      KeyValue(Key.exec.minWarmupRuns -> 20),
+      KeyValue(Key.exec.maxWarmupRuns -> 60),
+      KeyValue(Key.verbose -> false)
+    ) withWarmer(new Warmer.Default) measure {
+      reconstruirCadenaTurboMejoradaPar(1)(s.length, or)
+    }
+
+def reconstruirCadenaTurboMejorada(n: Int, o: Oraculo): Seq[Char] = {
+    def filtrar(SC: Seq[Seq[Char]], k: Int): Seq[Seq[Char]] = {
+      val conjunto = SC.toSet
+      for {
+        s1 <- SC
+        s2 <- SC
+        s = s1 ++ s2
+        if s.sliding(k).forall(conjunto.contains)
+      } yield s
+    }
+
+    @tailrec
+    def reconstruir(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
+      val candidatas = filtrar(SC, k / 2).filter(o)
+      val S = candidatas.head
+
+      if (S.length == n) S
+      else reconstruir(2 * k, candidatas)
+    }
+
+    val SC1 = alfabeto.map(c => Seq(c)).filter(o)
+    reconstruir(2, SC1)
+  }
+
+  def reconstruirCadenaTurboMejoradaPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
+      def filtrarPar(SC: Seq[Seq[Char]], k: Int): Seq[Seq[Char]] = {
+        val conjunto = SC.toSet
+        if (SC.size > umbral) {
+          (for {
+            s1 <- SC.par
+            s2 <- SC
+            s = s1 ++ s2
+            if s.sliding(k).forall(conjunto.contains)
+          } yield s).seq
+        } else {
+          for {
+            s1 <- SC
+            s2 <- SC
+            s = s1 ++ s2
+            if s.sliding(k).forall(conjunto.contains)
+          } yield s
+        }
+      }
+
+      @tailrec
+      def reconstruir(k: Int, SC: Seq[Seq[Char]]): Seq[Char] = {
+        val candidatos = filtrarPar(SC, k / 2)
+
+        val candidatosValidos =
+          if (candidatos.size > umbral) candidatos.par.filter(o).seq
+          else candidatos.filter(o)
+
+        val S = candidatosValidos.head
+        if (S.length == n) S
+        else {
+          reconstruir(2 * k, candidatosValidos)
+        }
+      }
+
+      val SC1 = alfabeto.map(c => Seq(c)).filter(o)
+      reconstruir(2, SC1)
+    }
