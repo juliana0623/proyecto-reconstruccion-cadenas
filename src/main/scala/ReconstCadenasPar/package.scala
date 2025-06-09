@@ -16,8 +16,52 @@ package object ReconstCadenasPar {
    * Usa paralelismo de tareas.
    */
   def reconstruirCadenaIngenuoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
-    // Implementación de la función reconstruirCadenaIngenuoPar
-    ??? // Implementar lógica aquí
+    def generarCadenas(longitud: Int): LazyList[List[Char]] = {
+      if (longitud == 0) LazyList(List.empty)
+      else if (longitud > umbral) {
+        val tareas = alfabeto.map { letra =>
+          task {
+            generarCadenas(longitud - 1).map(letra :: _)
+          }
+        }
+        tareas.map(_.join()).reduceLeft(_ #::: _)
+      } else {
+        for {
+          cadena <- generarCadenas(longitud - 1)
+          letra  <- alfabeto
+        } yield letra :: cadena
+      }
+    }
+    generarCadenas(n).find(o).getOrElse(Seq.empty)
+  }
+
+  def reconstruirCadenaIngenuoParIterator(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
+    val candidatos =
+      (1 to n).foldLeft(Iterator(Seq.empty[Char])) { (acc, _) =>
+        val accList = acc.toVector
+        if (accList.size > umbral) {
+          val (izq, der) = accList.splitAt(accList.size / 2)
+
+          val (resI, resD) = parallel(
+            () => for {
+              prefix <- izq.iterator
+              letra <- alfabeto.iterator
+            } yield prefix :+ letra,
+            () => for {
+              prefix <- der.iterator
+              letra <- alfabeto.iterator
+            } yield prefix :+ letra
+          )
+          resI() ++ resD()
+        } else {
+          for {
+            prefix <- accList.iterator
+            letra <- alfabeto.iterator
+          } yield prefix :+ letra
+        }
+      }
+
+    candidatos.find(o).getOrElse(Seq.empty)
   }
 
   /**

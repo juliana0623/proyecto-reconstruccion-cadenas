@@ -1,0 +1,13 @@
+k,Tamaño,Tiempo_Secuencial,Tiempo_Paralelo,Aceleracion
+1,  2,          14.39,          7.99,          1.80
+2,  4,          29.72,          14.07,         2.11
+3,  8,          74.30,          21.09,         3.52
+4,  16,         223.18,         40.74,         5.48
+5,  32,         312.89,         44.79,         6.99
+6,  64,         765.47,         110.71,        6.91
+7,128,2989.96,334.29,8.94
+8,256,29595.56,2625.56,11.27
+
+cd "/mnt/c/Users/mjsaa/Downloads/curso JS/scalaxd/ProyectoPF"
+sbt -J-Xmx8G -J-Djava.util.concurrent.ForkJoinPool.common.parallelism=4 "runMain TestRunner"
+

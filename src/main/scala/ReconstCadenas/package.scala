@@ -11,16 +11,17 @@ package object ReconstCadenas {
    * Algoritmo Ingenuo (2.3.1 del enunciado).
    */
   def reconstruirCadenaIngenuo(n: Int, o: Oraculo): Seq[Char] = {
-    val alfabetoLazy = alfabeto.to(LazyList)
-    val candidatos = (1 to n).foldLeft(LazyList(Vector.empty[Char])) {
-      (acc, _) =>
-        for {
-          prefix <- acc
-          letra <- alfabetoLazy
-        } yield prefix :+ letra
+    def generarCadenas(longitud: Int): LazyList[List[Char]] = {
+      if (longitud == 0) LazyList(List.empty)
+      else for {
+        cadena <- generarCadenas(longitud - 1)
+        letra <- alfabeto
+      } yield letra :: cadena
     }
-    candidatos.find(o).getOrElse(Seq.empty)
+    generarCadenas(n).find(o).getOrElse(Seq.empty)
   }
+
+
   /**
    * Recibe la longitud de la secuencia que hay que reconstruir (n) y un oráculo para esa secuencia,
    * y devuelve la secuencia reconstruida.
@@ -85,7 +86,7 @@ package object ReconstCadenas {
         s1 <- SC
         s2 <- SC
         s = s1 ++ s2
-        if s.sliding(k).toSet(conjunto.contains)
+        if s.sliding(k).toSet.forall(conjunto.contains)
       } yield s
     }
 
@@ -95,7 +96,9 @@ package object ReconstCadenas {
       val S = candidatas.head
 
       if (S.length == n) S
-      else reconstruir(2 * k, candidatas)
+      else {
+        reconstruir(2 * k, candidatas)
+      }
     }
 
     val SC1 = alfabeto.map(c => Seq(c)).filter(o)
@@ -119,7 +122,7 @@ package object ReconstCadenas {
       } yield s1 ++ s2
 
       combinaciones.filter { s =>
-        s.sliding(k).forall(sub => pertenece(sub, trie))
+        s.sliding(k).toSet.forall(sub => pertenece(sub, trie))
       }
     }
 

@@ -12,24 +12,32 @@ object TestRunner extends App {
   def comparar(k: Int): (Double, Double, Double) = {
     val n = math.pow(2, k).toInt
     val s = generarSecuenciaAleatoria(n, alfabeto)
-    val or = crearOraculo(1)(s)
+    val or = crearOraculo(0)(s)
+    println(s"\n--- Prueba para k=$k (n=$n) ---")
+    println(s"Cadena aleatoria generada: ${s.mkString}")
 
     // Tiempo secuencial
     val tiempoSecuencial = config(
-      KeyValue(Key.exec.minWarmupRuns -> 20),//20
-      KeyValue(Key.exec.maxWarmupRuns -> 60),//60
+      KeyValue(Key.exec.minWarmupRuns -> 1),//20
+      KeyValue(Key.exec.maxWarmupRuns -> 1),//60
       KeyValue(Key.verbose -> false)
     ) withWarmer(new Warmer.Default) measure {
-      reconstruirCadenaTurboMejorada(s.length, or)
+      val resultado = reconstruirCadenaTurboMejorada(s.length, or)
+      // Añadido: Mostrar resultado secuencial
+      println(s"Resultado secuencial: ${resultado.mkString}")
+      resultado
     }
 
     // Tiempo paralelo (única versión paralela incluida)
     val tiempoPar = config(
-      KeyValue(Key.exec.minWarmupRuns -> 20),
-      KeyValue(Key.exec.maxWarmupRuns -> 60),
+      KeyValue(Key.exec.minWarmupRuns -> 1),
+      KeyValue(Key.exec.maxWarmupRuns -> 1),
       KeyValue(Key.verbose -> false)
     ) withWarmer(new Warmer.Default) measure {
-      reconstruirCadenaTurboMejoradaPar(1)(s.length, or)
+      val resultado = reconstruirCadenaTurboMejoradaPar(1)(s.length, or)
+      // Añadido: Mostrar resultado paralelo
+      println(s"Resultado paralelo:   ${resultado.mkString}")
+      resultado
     }
 
     val speedup = tiempoSecuencial.value / tiempoPar.value
@@ -69,9 +77,9 @@ object TestRunner extends App {
   val timestamp = dateFormat.format(new Date())
   val nombreArchivo = s"resultados_acelerada_$timestamp.csv"
 
-  println("Ejecutando pruebas para k de 1 a 8...")
+  println("Ejecutando pruebas para k de 1 a 15...")
 
-  val resultados = (1 to 8).map { k =>
+  val resultados = (12 to 13).map { k =>
     println(s"Procesando k = $k (tamaño = ${math.pow(2, k).toInt})...")
     val resultado = comparar(k)
     (k, resultado)

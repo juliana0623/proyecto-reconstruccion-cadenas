@@ -1,0 +1,8 @@
+[0m[[0m[31merror[0m] [0m[0m[31m[31m-- [E007] Type Mismatch Error: /mnt/c/Users/mjsaa/Downloads/curso JS/scalaxd/ProyectoPF/src/main/scala/ReconstCadenas/package.scala:21:3 [0m[0m[0m
+[0m[[0m[31merror[0m] [0m[0m[31m21 |[0m  }[0m
+[0m[[0m[31merror[0m] [0m[0m[31m[31m   |[0m   ^[0m[0m
+[0m[[0m[31merror[0m] [0m[0m[31m   |[0m   Found:    Unit[0m
+[0m[[0m[31merror[0m] [0m[0m[31m   |[0m   Required: Seq[Char][0m
+[0m[[0m[31merror[0m] [0m[0m[31m   |[0m[0m
+[0m[[0m[31merror[0m] [0m[0m[31m   |[0m longer explanation available when compiling with `-explain`[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m

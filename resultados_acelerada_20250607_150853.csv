@@ -1,0 +1,39 @@
+k,Tamaño,Tiempo_Secuencial,Tiempo_Paralelo,Aceleracion
+1,  2,          0.89,           0.42,         2.11
+2,  4,          0.67,           0.69,         0.98
+3,  8,          2.77,           0.88,         3.14
+4,  16,         5.30,           2.25,         2.35
+5,  32,         4.45,           2.61,         1.71
+6,  64,         3.40,           8.08,         0.42
+7,  128,        6.00,           30.82,        0.19
+8,  256,        38.81,          24.41,        1.59
+9,  512,        202.59,         70.32,        2.88
+10, 1024,       442.65,         409.22,       1.08
+11, 2048,       1212.49,        2350.91,      0.52
+12, 4096,       12865.30,       15402.67,     0.84
+13, 8192,       25202.40,       37017.08,     0.68
+14, 16384,      90426.99,       177250.09,    0.51
+15, 32768,      816969.31,      64909.95,     12.59
+16, 65536,      622084.64,      680883.48,    0.91
+
+def reconstruirCadenaIngenuo(n: Int, o: Oraculo): Seq[Char] = {
+    val candidatos = (1 to n).foldLeft(Iterator(List.empty[Char])) {
+      (acc, _) =>
+        for {
+          prefix <- acc
+          letra <- alfabeto.iterator
+        } yield letra :: prefix
+    }
+    candidatos.find(o).getOrElse(Seq.empty)
+  }
+
+def reconstruirCadenaIngenuoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
+    val candidatos = (1 to n).foldLeft(Iterator(Seq.empty[Char])) {
+      (acc, _) =>
+        for {
+          prefix <- acc
+          letra <- alfabeto.iterator
+        } yield letra +: prefix
+    }
+    candidatos.map(_.reverse).find(o).getOrElse(Seq.empty)
+  }

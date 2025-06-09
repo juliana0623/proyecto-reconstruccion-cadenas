@@ -1,5 +1,7 @@
-import Oraculo._
-import ReconstCadenas._
+import Oraculo.*
+import common.{parallel, task}
+//import ReconstCadenas._
+//import ReconstCadenas.reconstruirCadenaIngenuo
 import scala.util.Random
 
 val random = new Random()
@@ -23,7 +25,29 @@ val or_1=crearOraculo(costoOraculo)(sec1)
 val or_2=crearOraculo(costoOraculo)(sec2)
 val or_3=crearOraculo(costoOraculo)(sec3)
 
-reconstruirCadenaTurboMejorada(sec1.length, or_1)
+def reconstruirCadenaIngenuoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
+
+  def generarCadenas(longitud: Int): LazyList[Seq[Char]] = {
+    if (longitud == 0) LazyList(List.empty)
+    else if (longitud >= umbral) {
+      val tareas = alfabeto.map { letra =>
+        task {
+          generarCadenas(longitud - 1).map(_ :+ letra)
+        }
+      }
+      tareas.map(_.join()).reduceLeft(_ #::: _)
+    } else {
+      for {
+        cadena <- generarCadenas(longitud - 1)
+        letra  <- alfabeto
+      } yield cadena :+ letra
+    }
+  }
+
+  generarCadenas(n).find(o).getOrElse(Seq.empty)
+}
+
+reconstruirCadenaIngenuoPar(1)(sec1.length, or_1)
 //reconstruirCadenaIngenuo(sec1.length, or_1)
 //reconstruirCadenaIngenuo(sec2.length, or_2)
 //reconstruirCadenaIngenuo(sec3.length, or_3)
