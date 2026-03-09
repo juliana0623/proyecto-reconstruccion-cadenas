@@ -71,8 +71,29 @@ package object ReconstCadenasPar {
    * Usa paralelismo de tareas y/o datos.
    */
   def reconstruirCadenaMejoradoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char] = {
-    // Implementación de la función reconstruirCadenaMejoradoPar
-    ??? // Implementar lógica aquí
+    val sc0: Seq[Seq[Char]] = Seq(Vector.empty[Char])
+
+    val scK = (1 to n).foldLeft(sc0) { (scAnterior, _) =>
+      if (scAnterior.size > umbral) {
+        // Paralelismo de datos: distribuimos la expansión de prefijos entre hilos
+        (for {
+          w     <- scAnterior.par
+          letra <- alfabeto
+          nuevo = w :+ letra
+          if o(nuevo)
+        } yield nuevo).seq
+      } else {
+        // Versión secuencial para tamaños pequeños (por debajo del umbral)
+        for {
+          w     <- scAnterior
+          letra <- alfabeto
+          nuevo = w :+ letra
+          if o(nuevo)
+        } yield nuevo
+      }
+    }
+
+    scK.find(_.length == n).getOrElse(Seq.empty)
   }
 
   /**
