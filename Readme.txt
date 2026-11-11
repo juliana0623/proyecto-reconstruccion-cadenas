@@ -1,215 +1,196 @@
-PROYECTO: Reconstrucción de Cadenas de ADN en Scala
-==============================================
+# DNA Sequence Reconstruction | Scala & Parallel Computing
 
-1. Descripción general
-----------------------
-Este proyecto implementa distintas soluciones funcionales (secuenciales y paralelas)
-al **Problema de Reconstrucción de Cadenas (PRC)** descrito en el enunciado del curso.
+A functional programming project that explores sequential and parallel algorithms for reconstructing unknown DNA sequences using an oracle-based approach. The project implements multiple algorithmic strategies, suffix trees, and parallel computation techniques to improve efficiency and evaluate performance.
 
-La idea es reconstruir una cadena de ADN desconocida S, de longitud N, sobre el
-alfabeto {a, c, g, t}, utilizando únicamente un **oráculo** Ψ_S que responde si una
-secuencia s es o no subcadena de S.
+## Overview
 
-Se implementan:
-- Soluciones funcionales secuenciales (ingenua, mejorada, turbo, turbo mejorada,
-  turbo acelerada con árboles de sufijos).
-- Versiones paralelas de varias de estas soluciones usando **paralelismo de datos**
-  y **paralelismo de tareas**.
-- Un programa de medición de tiempos usando **ScalaMeter**, que permite comparar
-  el desempeño secuencial vs paralelo y generar archivos CSV con los resultados.
+The **DNA Sequence Reconstruction Problem (DSRP)** consists of reconstructing an unknown DNA sequence \(S\) of length \(N\), over the alphabet `{a, c, g, t}`, using an oracle that answers whether a given sequence is a substring of \(S\).
 
+Instead of directly accessing the original sequence, algorithms must progressively identify valid candidates through oracle queries.
 
-2. Estructura de paquetes y archivos
-------------------------------------
-La estructura principal en `src/main/scala` es:
+This project explores different algorithmic approaches to solve the problem, combining functional programming, efficient data structures, and parallel computing.
 
-- `Oraculo\package.scala`
-  - Define:
-    - `val alfabeto = Seq('a', 'c', 'g', 't')`
-    - `type Oraculo = Seq[Char] => Boolean`
-    - `def crearOraculo(delay: Int)(c: Seq[Char]): Oraculo`
-  - Esta función modela el oráculo que responde si una secuencia es subcadena de la
-    cadena objetivo, simulando el costo del experimento con `Thread.sleep(delay)`.
+### Key Features
 
-- `ArbolSufijos\package.scala`
-  - Define la estructura de **trie** y los árboles de sufijos:
-    - `abstract class Trie`
-    - `case class Nodo(car: Char, marcada: Boolean, hijos: List[Trie])`
-    - `case class Hoja(car: Char, marcada: Boolean)`
-    - `def raiz(t: Trie): Char`
-    - `def cabezas(t: Trie): Seq[Char]`
-    - `def pertenece(s: Seq[Char], t: Trie): Boolean`
-    - `def adicionar(s: Seq[Char], t: Trie): Trie`
-    - `def arbolDeSufijos(ss: Seq[Seq[Char]]): Trie`
-  - Estas funciones permiten representar y consultar de forma eficiente conjuntos de
-    cadenas mediante árboles de sufijos.
+- Multiple sequential reconstruction algorithms with increasing levels of optimization.
+- Parallel implementations using data parallelism and task parallelism.
+- Trie and suffix tree structures for efficient candidate representation and filtering.
+- Configurable parallelization thresholds to balance computational overhead and performance.
+- Performance benchmarking with ScalaMeter.
+- CSV generation for analyzing execution times and speedup.
 
-- `ReconstCadenas\package.scala`
-  - Implementa las versiones **secuenciales** de los algoritmos:
-    - `def reconstruirCadenaIngenuo(n: Int, o: Oraculo): Seq[Char]`
-      - Implementa la solución ingenua (2.3.1): prueba todas las cadenas de longitud N.
-    - `def reconstruirCadenaMejorado(n: Int, o: Oraculo): Seq[Char]`
-      - Implementa la solución mejorada (2.3.2) construyendo conjuntos SC_k de
-        candidatas y filtrando con el oráculo.
-    - `def reconstruirCadenaTurbo(n: Int, o: Oraculo): Seq[Char]`
-      - Implementa la versión turbo (2.3.3), duplicando longitud k y combinando SC_k/2.
-    - `def reconstruirCadenaTurboMejorada(n: Int, o: Oraculo): Seq[Char]`
-      - Implementa la turbo mejorada (2.3.4) con la función de filtrado que evita
-        generar cadenas que ya pueden descartarse sin consultar al oráculo.
-    - `def reconstruirCadenaTurboAcelerada(n: Int, o: Oraculo): Seq[Char]`
-      - Implementa la versión turbo acelerada (2.3.5), usando árboles de sufijos para
-        representar SC_k y acelerar el filtrado de candidatas.
+## Algorithms
 
-- `common\package.scala`
-  - Proporciona primitivas de **paralelismo de tareas**:
-    - Infraestructura basada en `ForkJoinPool` y `RecursiveTask`.
-    - Funciones:
-      - `def task[T](body: => T): ForkJoinTask[T]`
-      - `def parallel[A, B](taskA: => A, taskB: => B): (A, B)`
-      - `def parallel[A, B, C, D](...)`
-  - Se utiliza para implementar paralelismo explícito en las versiones paralelas.
+The project implements five sequential approaches and their corresponding parallel versions.
 
-- `ReconstCadenasPar\package.scala`
-  - Implementa las versiones **paralelas** de los algoritmos:
-    - `def reconstruirCadenaIngenuoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Usa generación recursiva de cadenas y `task` para dividir el trabajo cuando
-        la profundidad supera el umbral.
-    - `def reconstruirCadenaIngenuoParIterator(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Variante que usa `Iterator` y `common.parallel` para dividir el espacio de
-        búsqueda en dos mitades.
-    - `def reconstruirCadenaMejoradoPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Versión paralela de la solución mejorada: cuando el tamaño de SC_k supera el
-        umbral, se usa `.par` (paralelismo de datos) para expandir las candidatas en
-        paralelo; para tamaños pequeños se usa la versión secuencial.
-    - `def reconstruirCadenaTurboPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Paraleliza la generación de combinaciones SC_k/2 · SC_k/2 y el filtrado por
-        el oráculo usando `.par` según el umbral.
-    - `def reconstruirCadenaTurboMejoradaPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Versión paralela del turbo mejorado, combinando:
-        - Filtrado de candidatos con conocimiento de SC_k.
-        - Paralelismo de datos para generación y filtrado cuando el tamaño supera
-          el umbral.
-    - `def reconstruirCadenaTurboAceleradaPar(umbral: Int)(n: Int, o: Oraculo): Seq[Char]`
-      - Versión paralela de la turbo acelerada:
-        - Usa `arbolDeSufijos` para representar SC_k.
-        - Paraleliza la verificación de subcadenas en el trie y la consulta al oráculo
-          cuando el número de combinaciones es grande.
+| Algorithm | Description |
+|---|---|
+| **Naive** | Explores all possible DNA sequences of length N. |
+| **Improved** | Builds and filters candidate sets incrementally using oracle queries. |
+| **Turbo** | Combines smaller candidate sequences to construct longer ones. |
+| **Enhanced Turbo** | Reduces unnecessary oracle queries through improved candidate filtering. |
+| **Accelerated Turbo** | Uses suffix trees to improve candidate representation and filtering. |
 
-- `TestRunner\package.scala`
-  - Programa principal (`object TestRunner extends App`) para:
-    - Generar una secuencia aleatoria de ADN de longitud n = 2^k.
-    - Crear el oráculo correspondiente con `crearOraculo`.
-    - Medir tiempos con **org.scalameter**:
-      - Versión secuencial: `reconstruirCadenaTurboMejorada`.
-      - Versión paralela: `reconstruirCadenaTurboMejoradaPar`.
-    - Calcular aceleración = T_secuencial / T_paralelo.
-    - Imprimir tabla de resultados por cada k.
-    - Guardar resultados en un archivo CSV `resultados_acelerada_YYYYMMDD_HHMMSS.csv`
-      en la raíz del proyecto.
+### Parallel Implementations
 
+Parallel versions of the algorithms leverage two approaches:
 
-3. Dependencias y compilación
-------------------------------
-El proyecto usa **sbt** y Scala 3:
+- **Data Parallelism:** Uses Scala parallel collections (`.par`) to distribute candidate generation and filtering operations.
+- **Task Parallelism:** Uses `ForkJoinPool`, `RecursiveTask`, and custom parallel execution primitives to divide computational workloads.
 
-- Archivo `build.sbt`:
-  - `scalaVersion := "3.3.6"`
-  - Dependencias principales:
-    - `"com.storm-enroute" %% "scalameter-core" % "0.21"` (vía `cross` para Scala 2.13).
-    - `"org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0"`.
-    - `"org.scalameta" %% "munit" % "1.1.0" % Test`.
+A configurable threshold determines when parallel execution is activated, allowing smaller workloads to remain sequential and avoiding unnecessary parallelization overhead.
 
-Requisitos:
-- Tener instalado:
-  - Java (JDK 8+).
-  - sbt.
+## Project Structure
 
-Para compilar el proyecto:
-1. Abrir una terminal en la carpeta raíz del proyecto.
-2. Ejecutar:
-   - `sbt compile`
+The main implementation is organized into the following Scala packages:
 
+```text
+src/main/scala/
+│
+├── Oraculo/
+│   └── package.scala
+│
+├── ArbolSufijos/
+│   └── package.scala
+│
+├── ReconstCadenas/
+│   └── package.scala
+│
+├── common/
+│   └── package.scala
+│
+├── ReconstCadenasPar/
+│   └── package.scala
+│
+└── TestRunner/
+    └── package.scala
+```
 
-4. Cómo ejecutar los algoritmos
--------------------------------
-### 4.1. Ejecución desde la consola de Scala o desde código
+| Package | Responsibility |
+|---|---|
+| `Oraculo` | Defines the DNA alphabet, oracle interface, and oracle creation. |
+| `ArbolSufijos` | Implements tries and suffix tree operations for candidate management. |
+| `ReconstCadenas` | Contains the sequential reconstruction algorithms. |
+| `common` | Provides task parallelism primitives based on ForkJoinPool. |
+| `ReconstCadenasPar` | Contains the parallel implementations of the reconstruction algorithms. |
+| `TestRunner` | Executes performance benchmarks and exports results to CSV files. |
 
-Ejemplo para usar cualquier versión `reconstruirCadenaXXX`:
+## Technologies
 
-1. Crear una cadena objetivo:
-   - Por ejemplo: `"gaatccagat".toList`
-2. Crear un oráculo:
-   - `val or = Oraculo.crearOraculo(1)(sec)`
-3. Llamar al algoritmo deseado:
-   - Secuencial ingenuo:
-     - `ReconstCadenas.reconstruirCadenaIngenuo(sec.length, or)`
-   - Secuencial mejorado:
-     - `ReconstCadenas.reconstruirCadenaMejorado(sec.length, or)`
-   - Turbo / turbo mejorada / turbo acelerada:
-     - `ReconstCadenas.reconstruirCadenaTurbo(sec.length, or)`
-     - `ReconstCadenas.reconstruirCadenaTurboMejorada(sec.length, or)`
-     - `ReconstCadenas.reconstruirCadenaTurboAcelerada(sec.length, or)`
-   - Versiones paralelas (ejemplo con umbral = 1000):
-     - `ReconstCadenasPar.reconstruirCadenaIngenuoPar(1000)(sec.length, or)`
-     - `ReconstCadenasPar.reconstruirCadenaMejoradoPar(1000)(sec.length, or)`
-     - `ReconstCadenasPar.reconstruirCadenaTurboPar(1000)(sec.length, or)`
-     - `ReconstCadenasPar.reconstruirCadenaTurboMejoradaPar(1000)(sec.length, or)`
-     - `ReconstCadenasPar.reconstruirCadenaTurboAceleradaPar(1000)(sec.length, or)`
+- **Language:** Scala 3.3.6
+- **Build Tool:** sbt
+- **Parallel Computing:** Scala Parallel Collections, ForkJoinPool
+- **Benchmarking:** ScalaMeter
+- **Testing:** MUnit
 
+## Getting Started
 
-5. Cómo ejecutar las mediciones de desempeño (ScalaMeter)
----------------------------------------------------------
-El programa principal `TestRunner` ya está configurado para:
-- Probar valores de k (por defecto, en el código: de 12 a 13).
-- Para cada k:
-  - Generar una cadena aleatoria de longitud n = 2^k.
-  - Medir tiempo secuencial con `reconstruirCadenaTurboMejorada`.
-  - Medir tiempo paralelo con `reconstruirCadenaTurboMejoradaPar`.
-  - Imprimir en consola los tiempos y la aceleración.
-  - Guardar los resultados en un archivo CSV en la raíz del proyecto.
+### Prerequisites
 
-Para ejecutarlo:
-1. Desde la raíz del proyecto, en una terminal:
-   - `sbt run`
-2. Seleccionar `TestRunner` si sbt pregunta qué objeto `main` ejecutar.
+- Java Development Kit (JDK)
+- sbt
 
-Los archivos CSV generados tienen nombres del estilo:
-- `resultados_acelerada_YYYYMMDD_HHMMSS.csv`
+### Compilation
 
-Puede abrirlos con cualquier editor de texto, Excel, LibreOffice, etc., para
-construir tablas comparativas y gráficas de aceleración.
+Clone the repository:
 
+```bash
+git clone https://github.com/juliana0623/proyecto-reconstruccion-cadenas.git
 
-6. Notas sobre paralelismo y umbral
------------------------------------
-- El parámetro `umbral` en las funciones paralelas controla a partir de qué tamaño
-  de conjunto de candidatas o combinaciones se activa el paralelismo:
-  - Para tamaños de entrada pequeños, se ejecuta de forma secuencial (menor
-    sobrecarga).
-  - Para tamaños grandes, se usa:
-    - `.par` sobre colecciones (paralelismo de datos).
-    - `task` y `parallel` (paquete `common`) para paralelismo de tareas.
-- Se recomienda experimentar con diferentes valores de `umbral` para encontrar
-  el mejor compromiso entre sobrecarga de creación de tareas y aceleración obtenida.
+cd proyecto-reconstruccion-cadenas
+```
 
+Compile the project:
 
-7. Relación con los resultados de aprendizaje del curso
--------------------------------------------------------
-Este proyecto evidencia:
-- Uso de **programación funcional** en Scala:
-  - Uso intensivo de colecciones inmutables, recursión, funciones de orden superior,
-    `LazyList`, `Iterator`, `foldLeft`, `for-comprehensions`, etc.
-- Combinación de programación funcional y **paralelismo**:
-  - Paralelismo de datos (`.par`) y de tareas (`task`, `parallel`) para acelerar
-    algoritmos expresados en estilo funcional.
-- Implementación y uso de **árboles de sufijos** para mejorar el desempeño de los
-  algoritmos turbo.
-- Medición y análisis de desempeño con **ScalaMeter**, generando datos cuantitativos
-  para comparar soluciones secuenciales y paralelas.
+```bash
+sbt compile
+```
 
-Con esto, el proyecto cubre los puntos del enunciado relacionados con:
-- Modelado funcional del problema.
-- Diseño e implementación de soluciones secuenciales y concurrentes.
-- Uso de estructuras de datos adecuadas (tries y árboles de sufijos).
-- Evaluación comparativa de desempeño y análisis de aceleración.
+## Running the Algorithms
 
+The reconstruction algorithms can be called by providing the target sequence length and an oracle.
+
+For example:
+
+```scala
+val sequence = "gaatccagat".toList
+
+val oracle = Oraculo.crearOraculo(1)(sequence)
+
+// Sequential implementation
+val result = ReconstCadenas
+  .reconstruirCadenaTurboMejorada(sequence.length, oracle)
+
+// Parallel implementation (threshold = 1000)
+val parallelResult = ReconstCadenasPar
+  .reconstruirCadenaTurboMejoradaPar(1000)(sequence.length, oracle)
+```
+
+The project also provides implementations for the other reconstruction strategies, both sequential and parallel.
+
+## Performance Benchmarking
+
+The `TestRunner` module uses **ScalaMeter** to evaluate the performance of sequential and parallel implementations.
+
+For each input size, it:
+
+1. Generates a random DNA sequence of length \(N = 2^k\).
+2. Creates the corresponding oracle.
+3. Measures the execution time of the enhanced turbo sequential algorithm.
+4. Measures the execution time of its parallel implementation.
+5. Calculates the speedup.
+
+The speedup is calculated as:
+
+\[
+\text{Speedup} = \frac{T_{\text{sequential}}}{T_{\text{parallel}}}
+\]
+
+Where:
+- \(T_{\text{sequential}}\) is the sequential execution time.
+- \(T_{\text{parallel}}\) is the parallel execution time.
+
+### Running the Benchmark
+
+Execute:
+
+```bash
+sbt run
+```
+
+If prompted, select `TestRunner` as the main application.
+
+The benchmark prints execution times and speedup values to the console and generates CSV files in the project root:
+
+```text
+resultados_acelerada_YYYYMMDD_HHMMSS.csv
+```
+
+These files can be used to create performance comparison tables and visualizations.
+
+## Performance Considerations
+
+Parallel execution does not necessarily improve performance for every input size. Creating and managing parallel tasks introduces computational overhead.
+
+The configurable threshold controls when parallel execution is activated:
+
+- **Small workloads:** Sequential execution avoids unnecessary parallelization overhead.
+- **Large workloads:** Parallel execution distributes candidate generation and filtering across multiple workers.
+
+Experimenting with different thresholds helps identify a suitable balance between task management overhead and execution speedup.
+
+## Concepts Explored
+
+This project provided practical experience with:
+
+- Functional Programming and immutable collections.
+- Recursive algorithms and higher-order functions.
+- Algorithm design and optimization.
+- Tries and suffix trees.
+- Data Parallelism and Task Parallelism.
+- Concurrent execution with ForkJoinPool.
+- Performance benchmarking and computational analysis.
+
+---
+
+**Developed as an academic project at Universidad del Valle.**
