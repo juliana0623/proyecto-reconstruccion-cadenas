@@ -142,13 +142,14 @@ For each input size, it:
 
 The speedup is calculated as:
 
-\[
+$$
 \text{Speedup} = \frac{T_{\text{sequential}}}{T_{\text{parallel}}}
-\]
+$$
 
 Where:
-- \(T_{\text{sequential}}\) is the sequential execution time.
-- \(T_{\text{parallel}}\) is the parallel execution time.
+
+- $T_{\text{sequential}}$ is the sequential execution time.
+- $T_{\text{parallel}}$ is the parallel execution time.
 
 ### Running the Benchmark
 
